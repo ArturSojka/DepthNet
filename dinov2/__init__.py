@@ -1,1 +1,1 @@
-from .vision_transformer import DINOv2
+from .vision_transformer import DinoVisionTransformer as DINOv2
