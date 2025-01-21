@@ -2,11 +2,17 @@ import h5py
 import torch
 import random
 from torch.utils.data import Dataset, DataLoader, ConcatDataset, random_split, Sampler
+from torchvision.transforms import Compose, Resize, Normalize
 
 class H5Dataset(Dataset):
     def __init__(self, file_path):
         self.file_path = file_path
         self.file = None
+        self.transform_rgb = Compose([
+            Resize(490),
+            Normalize(mean=(0.485, 0.456, 0.406),std=(0.229, 0.224, 0.225))
+        ])
+        self.transform_depth = Resize(490)
         with h5py.File(file_path, 'r') as h5f:
             self.length = len(h5f['images'])
 
@@ -20,38 +26,34 @@ class H5Dataset(Dataset):
         image = self.file['images'][idx]
         depth = self.file['depths'][idx]
         
-        image = torch.tensor(image, dtype=torch.uint8)
-        depth = torch.tensor(depth, dtype=torch.float32)
+        image = torch.tensor(image, dtype=torch.float32).permute(2,0,1) / 255.0
+        image = self.transform_rgb(image)
+        depth = self.transform_depth(torch.tensor(depth, dtype=torch.float32).unsqueeze(0)).squeeze(0)
 
         return image, depth
     
 def create_random_dataloaders(datasets: list[H5Dataset], batch_size: int = 32):
-    test_split = 0.1
-    val_split = 0.1
+    val_split = 0.2
     train_sets = []
-    test_sets = []
     val_sets = []
     
     for ds in datasets:
         lenght = len(ds)
-        test_amount, val_amount = int(lenght * test_split), int(lenght * val_split)
-        train_amount = lenght - (test_amount+val_amount)
+        val_amount = int(lenght * val_split)
+        train_amount = lenght - val_amount
         
-        train_set, test_set, val_set = random_split(ds, [train_amount, test_amount, val_amount])
+        train_set, val_set = random_split(ds, [train_amount, val_amount])
         
         train_sets.append(train_set)
-        test_sets.append(test_set)
         val_sets.append(val_set)
         
     train_dataset = ConcatDataset(train_sets)
-    test_dataset = ConcatDataset(test_sets)
     val_dataset = ConcatDataset(val_sets)
     
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
     
-    return train_loader, test_loader, val_loader
+    return train_loader, val_loader
 
 class EqualSampler(Sampler):
     def __init__(self, dataset_sizes: list[int], samples_per_dataset: int):
@@ -105,29 +107,24 @@ class EqualSampler(Sampler):
 
 def create_equal_dataloaders(datasets: list[H5Dataset], batch_size: int = 30):
     assert batch_size % len(datasets) == 0, "batch_size must be a multiple of the numer of datasets"
-    test_split = 0.1
-    val_split = 0.1
+    val_split = 0.2
     train_sets = []
-    test_sets = []
     val_sets = []
     
     for ds in datasets:
         lenght = len(ds)
-        test_amount, val_amount = int(lenght * test_split), int(lenght * val_split)
-        train_amount = lenght - (test_amount+val_amount)
+        val_amount = int(lenght * val_split)
+        train_amount = lenght - val_amount
         
-        train_set, test_set, val_set = random_split(ds, [train_amount, test_amount, val_amount])
+        train_set, val_set = random_split(ds, [train_amount, val_amount])
         
         train_sets.append(train_set)
-        test_sets.append(test_set)
         val_sets.append(val_set)
         
     train_dataset = ConcatDataset(train_sets)
-    test_dataset = ConcatDataset(test_sets)
     val_dataset = ConcatDataset(val_sets)
     
     train_loader = DataLoader(train_dataset, batch_sampler=EqualSampler([len(d) for d in train_sets], batch_size//len(datasets)))
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
     
-    return train_loader, test_loader, val_loader
+    return train_loader, val_loader
