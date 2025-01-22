@@ -37,7 +37,7 @@ class DepthNet(nn.Module):
         super(DepthNet,self).__init__()
         
         self.intermediate_layers = [2,5,8,11]
-        self.backbone: DINOv2 = torch.hub.load(r'C:\Users\artur\.cache\torch\hub\facebookresearch_dinov2_main', 'dinov2_vits14', source='local') if backbone is None else backbone
+        self.backbone: DINOv2 = backbone if backbone is not None else torch.hub.load(r'C:\Users\artur\.cache\torch\hub\facebookresearch_dinov2_main', 'dinov2_vits14', source='local')
         
         self.dpt = DPT(64,self.backbone.embed_dim,layer_channels=[48, 96, 192, 384])
         

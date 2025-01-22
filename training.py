@@ -68,7 +68,7 @@ def train_model(model,criterion,dataset_list,lr=1e-4,epochs=100,save_dir='traini
             # Update progress bar
             progress_bar.set_postfix({'train_loss': train_loss / train_batches})
             step += 1
-            if step % 10 == 0:
+            if step % 100 == 0:
                 with open(training_log, 'a', newline='') as f:
                     writer = csv.writer(f)
                     writer.writerow([step, train_loss / train_batches])
