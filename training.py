@@ -55,7 +55,7 @@ def train_model(model,criterion,dataset_list,lr=1e-4,epochs=100,save_dir='traini
             pred_depths = model(images)
             
             # Compute loss
-            loss = criterion(pred_depths, depths)
+            loss = criterion(1/pred_depths, 1/depths)
             
             # Backward pass and optimization
             loss.backward()
