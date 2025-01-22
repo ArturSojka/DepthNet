@@ -42,14 +42,16 @@ class SSIMSELoss(nn.Module):
         self._gm_loss = GMLoss(4)
     
     def forward(self, prediction, target):
-        scale, shift = self.scale_and_shift(prediction, target)
-        prediction_ssi = scale.view(-1, 1, 1) * prediction + shift.view(-1, 1, 1)
+        pred_depth = 1/prediction
+        true_depth = 1/target
+        scale, shift = self.scale_and_shift(pred_depth, true_depth)
+        prediction_ssi = scale.view(-1, 1, 1) * pred_depth + shift.view(-1, 1, 1)
         
-        res = prediction_ssi - target
+        res = prediction_ssi - true_depth
         loss = torch.mean(torch.mean(res * res, (1, 2)) / 2)
         
         if self._alpha > 0.0:
-            loss += self._alpha * self._gm_loss(prediction_ssi,target)
+            loss += self._alpha * self._gm_loss(1/prediction_ssi,target)
             
         return loss
     
