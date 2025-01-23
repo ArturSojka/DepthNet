@@ -67,7 +67,7 @@ class DepthNet(nn.Module):
     def prepare_for_inference(self,image, input_size):
         # new_h, new_w = (image.shape[-2] // 14)*14, (image.shape[-1] // 14)*14
         transform = Compose([
-            Resize(input_size),
+            Resize((input_size,input_size)),
             Normalize(mean=(0.485, 0.456, 0.406),std=(0.229, 0.224, 0.225))
         ])
         image = image.permute(2,0,1).unsqueeze(0).type(torch.float32) / 255.0
